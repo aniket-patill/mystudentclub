@@ -14,7 +14,11 @@
             'cv6.html': ['contact', 'achievements', 'certifications', 'skills'],
             'cv7.html': ['contact', 'certifications', 'achievements', 'leadership', 'interests', 'skills'],
             'cv8.html': ['contact', 'tagline', 'summary', 'certifications', 'interests'],
-            'cv9.html': ['contact', 'projects','achievements', 'leadership']
+            'cv9.html': ['contact', 'projects','achievements', 'leadership'],
+            'cv10.html': ['contact', 'certifications', 'achievements', 'interests'],
+            'cv11.html': ['phone', 'email', 'linkedin', 'tagline', 'category', 'summary', 'certifications', 'achievements', 'interests'],
+            'cv12.html': ['contact', 'summary', 'category', 'skills', 'certifications', 'achievements', 'interests', 'leadership'],
+            'cv13.html': ['phone', 'email', 'linkedin', 'summary', 'skills', 'certifications', 'achievements', 'leadership']
         };
 
         // Update form sections visibility based on selected template
@@ -553,7 +557,11 @@
             { file: 'cv6.html', name: 'Minimalist', accent: '#6b7280', style: 'minimal' },
             { file: 'cv7.html', name: 'Compact', accent: '#7c3aed', style: 'dense' },
             { file: 'cv8.html', name: 'Bold Modern', accent: '#dc2626', style: 'bold' },
-            { file: 'cv9.html', name: 'Executive', accent: '#064e3b', style: 'exec' }
+            { file: 'cv9.html', name: 'Executive', accent: '#064e3b', style: 'exec' },
+            { file: 'cv10.html', name: 'Classic Refined', accent: '#2F557F', style: 'refined' },
+            { file: 'cv11.html', name: 'Modern Deep Blue', accent: '#2c5d79', style: 'deepblue' },
+            { file: 'cv12.html', name: 'Executive Dark', accent: '#404040', style: 'dark' },
+            { file: 'cv13.html', name: 'Classic Professional', accent: '#104e70', style: 'formal' }
         ];
 
         function toggleTemplateSidebar(show) {
@@ -864,6 +872,9 @@ function printCV() {
     const A4_WIDTH = 1000;
     const A4_HEIGHT = 1414;
 
+    // Read the current content-scale from the live iframe so we preserve shrink-to-fit
+    const liveScale = getComputedStyle(doc.documentElement).getPropertyValue('--content-scale').trim() || '1';
+
     const opt = {
         margin: [0, 0, 0, 0],
         filename: (cvData.personal?.name || 'cv').replace(/[^a-z0-9]/gi, '_') + '.pdf',
@@ -890,14 +901,22 @@ function printCV() {
                     node.style.width = A4_WIDTH + 'px';
                     node.style.height = A4_HEIGHT + 'px';
                     node.style.margin = '0';
-                    node.style.padding = node.style.padding || '30px';
                     node.style.boxShadow = 'none';
-                    node.style.overflow = 'visible';
-                    node.style.display = 'block';
+                    node.style.overflow = 'hidden';
+                    node.style.display = 'flex';
                     node.style.position = 'relative';
                     
-                    // Reset CSS variable for content scaling
-                    clonedDoc.documentElement.style.setProperty('--content-scale', '1');
+                    // Preserve the content-scale from the live iframe (shrink-to-fit)
+                    clonedDoc.documentElement.style.setProperty('--content-scale', liveScale);
+
+                    // Run a shrink pass on the clone to guarantee content fits
+                    let currentScale = parseFloat(liveScale);
+                    let iterations = 0;
+                    while (node.scrollHeight > A4_HEIGHT && iterations < 50) {
+                        currentScale -= 0.01;
+                        clonedDoc.documentElement.style.setProperty('--content-scale', String(currentScale));
+                        iterations++;
+                    }
                 }
 
                 // Reset zoom wrapper if it exists
@@ -906,6 +925,9 @@ function printCV() {
                     wrapper.style.transform = 'none';
                     wrapper.style.padding = '0';
                     wrapper.style.margin = '0';
+                    wrapper.style.overflow = 'visible';
+                    wrapper.style.display = 'block';
+                    wrapper.style.width = '100%';
                 }
             }
         },

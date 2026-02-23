@@ -1220,14 +1220,20 @@ async function generateSitemap(jobsDir) {
                         }
                     } else {
                         // No JSON-LD found (already processed or invalid)
-                        // Check file mtime as fallback
-                        const stats = fs.statSync(filePath);
-                        if (stats.mtime > cutoffDate) {
-                            const url = `${DOMAIN}/jobs/${folderName}/${file}`;
-                            sitemapContent += `   <url>\n      <loc>${url}</loc>\n      <lastmod>${today}</lastmod>\n      <changefreq>daily</changefreq>\n      <priority>0.7</priority>\n   </url>\n`;
-                            addedCount++;
+                        const hasNoindexMeta = content.includes('<meta name="robots" content="noindex');
+                        
+                        if (hasNoindexMeta) {
+                            // If it has a noindex tag, it's explicitly expired. Do not add to sitemap.
+                            // Continue without adding to sitemap.
+                        } else {
+                            // Check file mtime as fallback only if it's not explicitly noindexed
+                            const stats = fs.statSync(filePath);
+                            if (stats.mtime > cutoffDate) {
+                                const url = `${DOMAIN}/jobs/${folderName}/${file}`;
+                                sitemapContent += `   <url>\n      <loc>${url}</loc>\n      <lastmod>${today}</lastmod>\n      <changefreq>daily</changefreq>\n      <priority>0.7</priority>\n   </url>\n`;
+                                addedCount++;
+                            }
                         }
-                        // If old and no JSON-LD, it's already been processed - skip
                     }
                 } catch (err) {
                     console.error(`Error processing file ${file}:`, err);
