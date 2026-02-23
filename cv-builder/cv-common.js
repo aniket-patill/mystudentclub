@@ -354,6 +354,23 @@ function toggleSectionElement(element, isVisible) {
     let containerToHide = element;
     let headerToHide = null;
 
+    // GUARD: If element is inside a footer-col (CV-11 grid layout),
+    // only hide the footer-col at most — never walk higher.
+    // This prevents hiding .footer-grid or .content-padding when a single
+    // grid column's content is empty.
+    const footerCol = element.closest('.footer-col');
+    if (footerCol) {
+        containerToHide = footerCol;
+        containerToHide.style.display = isVisible ? '' : 'none';
+        
+        // Dynamically rebuild the grid based on which columns are visible
+        const footerGrid = footerCol.closest('.footer-grid');
+        if (footerGrid) {
+            rebuildFooterGrid(footerGrid);
+        }
+        return;
+    }
+
     // Check if element is inside a content-block div (CV-5)
     const contentBlock = element.closest('.content-block');
     if (contentBlock) {
@@ -367,9 +384,17 @@ function toggleSectionElement(element, isVisible) {
     }
 
     // Check if element is inside a content-padding div (CV-6)
+    // BUT only if it's ALSO inside a section-container — otherwise this
+    // would match the outermost content wrapper and hide everything.
     const contentPadding = element.closest('.content-padding');
     if (contentPadding) {
-        containerToHide = contentPadding;
+        // Only use content-padding as containerToHide if the element is
+        // directly a child of it (CV-6 pattern) and not nested inside
+        // other structural elements like grids or tables.
+        const hasSpecificWrapper = element.closest('.section-container, .section, .footer-grid');
+        if (!hasSpecificWrapper) {
+            containerToHide = contentPadding;
+        }
     }
 
     // Check if element is inside a section-container (CV-6)
@@ -403,6 +428,8 @@ function toggleSectionElement(element, isVisible) {
         !parent.classList.contains('content-block') &&
         !parent.classList.contains('section-content') &&
         !parent.classList.contains('content-padding') &&
+        !parent.classList.contains('footer-grid') &&
+        !parent.classList.contains('footer-col') &&
         parent.getAttribute('style')) {
         containerToHide = parent;
     }
@@ -427,6 +454,7 @@ function toggleSectionElement(element, isVisible) {
                 while (tableHeader && searchCount > 0) {
                     if (
                         tableHeader.classList.contains('section-header') ||
+                        tableHeader.classList.contains('section-header-container') ||
                         tableHeader.classList.contains('section-title') ||
                         tableHeader.tagName === 'H2' ||
                         tableHeader.tagName === 'H3'
@@ -471,6 +499,7 @@ function toggleSectionElement(element, isVisible) {
             if (
                 sibling.classList.contains('section-header') ||
                 sibling.classList.contains('section-header-2') ||
+                sibling.classList.contains('section-header-container') ||
                 sibling.classList.contains('section-title') ||
                 sibling.classList.contains('gray-bar') ||
                 sibling.tagName === 'H2' ||
@@ -491,6 +520,8 @@ function toggleSectionElement(element, isVisible) {
             current.classList.contains('cv-page') || 
             current.classList.contains('resume-container') ||
             current.classList.contains('main-container') ||
+            current.classList.contains('content-padding') ||
+            current.classList.contains('footer-grid') ||
             current.classList.contains('page') ||
             current.tagName === 'BODY') {
             break;
@@ -515,5 +546,63 @@ function toggleSectionElement(element, isVisible) {
                 mainHeader.style.display = isVisible ? '' : 'none';
             }
         }
+    }
+}
+
+/**
+ * Rebuilds the footer-grid layout dynamically based on which footer-col
+ * children are visible. Hides/shows vertical-border dividers and sets
+ * a new grid-template-columns so visible columns share space equally.
+ */
+function rebuildFooterGrid(grid) {
+    const children = Array.from(grid.children);
+
+    // First pass: determine which footer-cols are visible
+    const visibleCols = [];
+    children.forEach(child => {
+        if (child.classList.contains('footer-col')) {
+            if (child.style.display !== 'none') {
+                visibleCols.push(child);
+            }
+        }
+    });
+
+    // Second pass: hide all vertical borders, then selectively show
+    children.forEach(child => {
+        if (child.classList.contains('vertical-border')) {
+            child.style.display = 'none';
+        }
+    });
+
+    // Show borders only BETWEEN two visible footer-cols
+    for (let i = 0; i < visibleCols.length - 1; i++) {
+        // Walk from one visible col to the next, showing the first border found
+        let el = visibleCols[i].nextElementSibling;
+        while (el && el !== visibleCols[i + 1]) {
+            if (el.classList.contains('vertical-border')) {
+                el.style.display = '';
+                break;
+            }
+            el = el.nextElementSibling;
+        }
+    }
+
+    // Build new grid-template-columns for only visible items
+    const cols = [];
+    children.forEach(child => {
+        if (child.style.display === 'none') return;
+        if (child.classList.contains('footer-col')) {
+            cols.push('minmax(0, 1fr)');
+        } else if (child.classList.contains('vertical-border')) {
+            cols.push('auto');
+        }
+    });
+
+    if (cols.length > 0) {
+        grid.style.gridTemplateColumns = cols.join(' ');
+        grid.style.display = '';
+    } else {
+        // All columns hidden — hide the entire grid
+        grid.style.display = 'none';
     }
 }
