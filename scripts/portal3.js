@@ -157,19 +157,19 @@ function setActivePortalTab() {
 
     experienceFilterGroups.forEach(el => el.style.display = 'none');
 
-    if (path.includes('/ca-articleship-opportunities')) {
+    if (path.includes('/ca-articleship-opportunities') || path.includes('/jobs/articleship/')) {
         currentTable = 'Articleship Jobs';
         activeSelector = 'a[href="/ca-articleship-opportunities"]';
-    } else if (path.includes('/semi-qualified-ca-jobs')) {
+    } else if (path.includes('/semi-qualified-ca-jobs') || path.includes('/jobs/semi-qualified/')) {
         currentTable = 'Semi Qualified Jobs';
         activeSelector = 'a[href="/semi-qualified-ca-jobs"]';
         experienceFilterGroups.forEach(el => el.style.display = 'block');
-    } else if (path.toLowerCase().includes('/experienced-ca-jobs')) {
+    } else if (path.toLowerCase().includes('/experienced-ca-jobs') || path.includes('/jobs/experienced/')) {
         currentTable = 'Fresher Jobs';
         activeSelector = 'a[href="/experienced-ca-jobs"]';
         state.experience = 'Experienced';
         experienceFilterGroups.forEach(el => el.style.display = 'none');
-    } else if (path.includes('/ca-fresher-jobs')) {
+    } else if (path.includes('/ca-fresher-jobs') || path.includes('/jobs/fresher/')) {
         currentTable = 'Fresher Jobs';
         activeSelector = 'a[href="/ca-fresher-jobs"]';
         state.experience = 'Freshers';
