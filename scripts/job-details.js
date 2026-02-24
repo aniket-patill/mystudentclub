@@ -55,9 +55,9 @@ function setBackLink(type) {
 
     const portalMap = {
         'industrial': { url: '/', label: 'Industrial Training' },
-        'fresher': { url: '/fresher.html', label: 'Fresher Jobs' },
-        'semi': { url: '/semi-qualified.html', label: 'Semi Qualified' },
-        'articleship': { url: '/articleship.html', label: 'Articleship' }
+        'fresher': { url: '/ca-fresher-jobs', label: 'Fresher Jobs' },
+        'semi': { url: '/semi-qualified-ca-jobs', label: 'Semi Qualified' },
+        'articleship': { url: '/ca-articleship-opportunities', label: 'Articleship' }
     };
 
     const portal = portalMap[type] || portalMap['industrial'];

@@ -140,12 +140,12 @@ const EMAIL_SUBJECT_MAP = {
 
 function isExperiencedFresherPortal() {
     const path = window.location.pathname.toLowerCase();
-    return path.includes('/experienced-ca');
+    return path.includes('/experienced-ca-jobs');
 }
 
 function isFresherPortal() {
     const path = window.location.pathname.toLowerCase();
-    return path.includes('/fresher');
+    return path.includes('/ca-fresher-jobs');
 }
 
 function setActivePortalTab() {
@@ -157,21 +157,21 @@ function setActivePortalTab() {
 
     experienceFilterGroups.forEach(el => el.style.display = 'none');
 
-    if (path.includes('/articleship')) {
+    if (path.includes('/ca-articleship-opportunities')) {
         currentTable = 'Articleship Jobs';
-        activeSelector = 'a[href="/articleship.html"]';
-    } else if (path.includes('/semi-qualified')) {
+        activeSelector = 'a[href="/ca-articleship-opportunities"]';
+    } else if (path.includes('/semi-qualified-ca-jobs')) {
         currentTable = 'Semi Qualified Jobs';
-        activeSelector = 'a[href="/semi-qualified.html"]';
+        activeSelector = 'a[href="/semi-qualified-ca-jobs"]';
         experienceFilterGroups.forEach(el => el.style.display = 'block');
-    } else if (path.toLowerCase().includes('/experienced-ca')) {
+    } else if (path.toLowerCase().includes('/experienced-ca-jobs')) {
         currentTable = 'Fresher Jobs';
-        activeSelector = 'a[href="/experienced-ca.html"]';
+        activeSelector = 'a[href="/experienced-ca-jobs"]';
         state.experience = 'Experienced';
         experienceFilterGroups.forEach(el => el.style.display = 'none');
-    } else if (path.includes('/fresher')) {
+    } else if (path.includes('/ca-fresher-jobs')) {
         currentTable = 'Fresher Jobs';
-        activeSelector = 'a[href="/fresher.html"]';
+        activeSelector = 'a[href="/ca-fresher-jobs"]';
         state.experience = 'Freshers';
         experienceFilterGroups.forEach(el => el.style.display = 'none');
     } else {
@@ -2156,11 +2156,11 @@ const JOB_PREFERENCE_KEY = 'userJobPreference';
 // Map preference values to redirect URLs
 const PREFERENCE_REDIRECT_MAP = {
     'industrial': '/',
-    'articleship': '/articleship.html',
-    'fresher_fresher': '/fresher.html',
-    'fresher_experienced': '/experienced-ca.html',
-    'semi_fresher': '/semi-qualified.html',
-    'semi_experienced': '/semi-qualified.html'
+    'articleship': '/ca-articleship-opportunities',
+    'fresher_fresher': '/ca-fresher-jobs',
+    'fresher_experienced': '/experienced-ca-jobs',
+    'semi_fresher': '/semi-qualified-ca-jobs',
+    'semi_experienced': '/semi-qualified-ca-jobs'
 };
 
 function getCurrentPagePreference() {
@@ -2488,3 +2488,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         initJobPreferenceModal();
     }, 500);
 });
+

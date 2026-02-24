@@ -207,9 +207,9 @@ const htmlTemplate = (job, jsonLd, categorySlug, jobId, tableName) => {
     // Back Link Logic
     const portalMap = {
         'industrial': { url: '/', label: 'Industrial Training' },
-        'fresher': { url: '/fresher.html', label: 'Fresher Jobs' },
-        'semi-qualified': { url: '/semi-qualified.html', label: 'Semi Qualified' },
-        'articleship': { url: '/articleship.html', label: 'Articleship' }
+        'fresher': { url: '/ca-fresher-jobs', label: 'Fresher Jobs' },
+        'semi-qualified': { url: '/semi-qualified-ca-jobs', label: 'Semi Qualified' },
+        'articleship': { url: '/ca-articleship-opportunities', label: 'Articleship' }
     };
     const backLinkUrl = portalMap[categorySlug]?.url || '/';
 
@@ -1221,7 +1221,7 @@ async function generateSitemap(jobsDir) {
                     } else {
                         // No JSON-LD found (already processed or invalid)
                         const hasNoindexMeta = content.includes('<meta name="robots" content="noindex');
-                        
+
                         if (hasNoindexMeta) {
                             // If it has a noindex tag, it's explicitly expired. Do not add to sitemap.
                             // Continue without adding to sitemap.
@@ -1254,3 +1254,4 @@ async function generateSitemap(jobsDir) {
 }
 
 generateJobs();
+
