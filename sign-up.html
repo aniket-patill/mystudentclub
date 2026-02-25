@@ -395,6 +395,10 @@
       }
     );
 
+    const supabaseGoogleClient = supabase.createClient('https://izsggdtdiacxdsjjncdq.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6c2dnZHRkaWFjeGRzampuY2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1OTEzNjUsImV4cCI6MjA1NDE2NzM2NX0.FVKBJG-TmXiiYzBDjGIRBM2zg-DYxzNP--WM6q2UMt0'
+    );
+
     const signupForm = document.getElementById('signup-form');
     const errorMessage = document.getElementById('error-message');
     const successMessage = document.getElementById('success-message');
@@ -479,7 +483,7 @@
       errorMessage.classList.remove('show');
       successMessage.classList.remove('show');
       try {
-        const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        const { data, error } = await supabaseGoogleClient.auth.signInWithOAuth({
           provider: 'google',
           options: {}
         });
@@ -499,7 +503,7 @@
         return;
       }
       try {
-        const { error } = await supabaseClient.auth.signInWithIdToken({
+        const { error } = await supabaseGoogleClient.auth.signInWithIdToken({
           provider: 'google',
           token: id_token
         });
