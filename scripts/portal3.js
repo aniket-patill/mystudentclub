@@ -734,7 +734,21 @@ async function fetchJobs() {
         }
     } catch (error) {
         if (dom.jobsContainer) {
-            dom.jobsContainer.innerHTML = `<p class="no-jobs-found" style="color:red;">Failed to load jobs: ${error.message}</p>`;
+            const errMsg = (error.message || '').toLowerCase();
+            const isNetworkError = errMsg.includes('failed to fetch') ||
+                errMsg.includes('network') ||
+                errMsg.includes('fetch');
+
+            if (isNetworkError) {
+                dom.jobsContainer.innerHTML = `
+                    <div style="text-align: center; padding: 3rem 1rem; color: #ef4444;">
+                        <i class="fas fa-tools" style="font-size: 3rem; margin-bottom: 1rem; color: #f59e0b;"></i>
+                        <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; color: #1f2937;">Site Under Maintenance</h3>
+                        <p style="color: #6b7280;">We will be back online in 30 minutes.</p>
+                    </div>`;
+            } else {
+                dom.jobsContainer.innerHTML = `<p class="no-jobs-found" style="color:red;">Failed to load jobs: ${error.message}</p>`;
+            }
         }
     } finally {
         isFetching = false;
