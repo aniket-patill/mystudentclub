@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <script>
     (function () {
       const savedTheme = localStorage.getItem('msc-theme') || localStorage.getItem('portal_theme') || localStorage.getItem('theme') || 'light';
@@ -3505,7 +3505,7 @@
               <span class="segment-label">Sort By</span>
               <select id="sort-by" class="afr-filter-select" aria-label="Sort">
                 <option value="rating">Highest rated</option>
-                <option value="count">Most reviewed</option>
+                <option value="count" selected>Most reviewed</option>
                 <option value="newest">Newest</option>
               </select>
             </div>
@@ -3661,7 +3661,7 @@
           <label for="sort-by-mobile">Sort By</label>
           <select id="sort-by-mobile" class="filter-control">
             <option value="rating">Highest rated</option>
-            <option value="count">Most reviewed</option>
+            <option value="count" selected>Most reviewed</option>
             <option value="newest">Newest</option>
           </select>
         </div>
@@ -3806,7 +3806,7 @@
         const topHoursKey = Object.entries(hoursCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
         return {
           firmId: rs[0].firm_id,
-          firmName: rs[0].firm_name,
+          firmName: rs[0].firm_name || rs[0].firm_id || 'Unknown Firm',
           location: rs[0].location,
           count: rs.length,
           avgOverall: avg(rs.map(r => r.overall_rating)),
@@ -4265,7 +4265,7 @@
       const loc = document.getElementById('filter-location')?.value || '';
       const minStipend = parseInt(document.getElementById('stipend-min-input')?.value || '0', 10);
       const maxStipend = parseInt(document.getElementById('stipend-max-input')?.value || '100000', 10);
-      const sort = document.getElementById('sort-by')?.value || 'rating';
+      const sort = document.getElementById('sort-by')?.value || 'count';
 
       const qTokens = q.split(/\s+/).filter(Boolean);
       let out = FIRMS.filter(f => {
@@ -4573,19 +4573,20 @@
         // Apply filters
         if (applyFiltersBtn) {
           applyFiltersBtn.addEventListener('click', () => {
-            const locVal = document.getElementById('filter-location-mobile').value;
-            const stipendVal = document.getElementById('filter-stipend-mobile').value;
-            const sortVal = document.getElementById('sort-by-mobile').value;
+            const locVal = document.getElementById('filter-location-mobile')?.value || '';
+            const sortVal = document.getElementById('sort-by-mobile')?.value || 'rating';
 
             // Copy to desktop inputs
-            document.getElementById('filter-location').value = locVal;
-            document.getElementById('filter-stipend').value = stipendVal;
-            document.getElementById('sort-by').value = sortVal;
+            const deskLoc = document.getElementById('filter-location');
+            if (deskLoc) deskLoc.value = locVal;
+            const deskSort = document.getElementById('sort-by');
+            if (deskSort) deskSort.value = sortVal;
 
             // Refresh custom dropdown visuals
-            initCustomDropdown('filter-location');
-            initCustomDropdown('filter-stipend');
-            initCustomDropdown('sort-by');
+            if (typeof initCustomDropdown === 'function') {
+              initCustomDropdown('filter-location');
+              initCustomDropdown('sort-by');
+            }
 
             applyControls();
             closeDrawer();
@@ -4595,13 +4596,25 @@
         // Reset filters
         if (mobileResetBtn) {
           mobileResetBtn.addEventListener('click', () => {
-            document.getElementById('filter-location-mobile').value = '';
-            document.getElementById('filter-stipend-mobile').value = '';
-            document.getElementById('sort-by-mobile').value = 'rating';
+            const locMob = document.getElementById('filter-location-mobile');
+            if (locMob) locMob.value = '';
+            const sortMob = document.getElementById('sort-by-mobile');
+            if (sortMob) sortMob.value = 'count';
 
-            document.getElementById('filter-location').value = '';
-            document.getElementById('filter-stipend').value = '';
-            document.getElementById('sort-by').value = 'rating';
+            const deskLoc = document.getElementById('filter-location');
+            if (deskLoc) deskLoc.value = '';
+            const deskSort = document.getElementById('sort-by');
+            if (deskSort) deskSort.value = 'count';
+
+            // Reset dual range sliders (mobile & desktop)
+            ['stipend-min-input-mobile', 'stipend-min-input', 'stipend-range-min-mobile', 'stipend-range-min'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.value = 0;
+            });
+            ['stipend-max-input-mobile', 'stipend-max-input', 'stipend-range-max-mobile', 'stipend-range-max'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.value = 100000;
+            });
 
             const searchInput = document.getElementById('search-input');
             if (searchInput) searchInput.value = '';
@@ -4611,14 +4624,15 @@
             const badge = document.getElementById('active-tag-badge');
             if (badge) badge.style.display = 'none';
 
-            // Refresh custom dropdown visuals
-            initCustomDropdown('filter-location');
-            initCustomDropdown('filter-stipend');
-            initCustomDropdown('sort-by');
-            initCustomDropdown('filter-location-mobile');
-            initCustomDropdown('filter-stipend-mobile');
-            initCustomDropdown('sort-by-mobile');
+            if (typeof initCustomDropdown === 'function') {
+              initCustomDropdown('filter-location');
+              initCustomDropdown('sort-by');
+              initCustomDropdown('filter-location-mobile');
+              initCustomDropdown('sort-by-mobile');
+            }
 
+            // The desktop input handler refreshes both slider tracks and the label.
+            document.getElementById('stipend-range-min')?.dispatchEvent(new Event('input'));
             applyControls();
             closeDrawer();
           }); // end mobileResetBtn listener
