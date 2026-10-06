@@ -53,16 +53,7 @@
         'industrial-training': { resources: industrialResources, premiumProgram: 'industrial-training' },
         'ca-fresher': { resources: fresherResources, premiumProgram: 'ca-fresher' },
         'articleship': { resources: fresherResources.filter(r => r.category === 'cv-prep').map(r => ({ ...r, title: r.title === 'Cover Letter CA Fresher' ? 'Cover Letter' : r.title })), premiumProgram: 'articleship' },
-        'semi-qualified': { resources: fresherResources.map(r => ({ ...r, title: r.title === 'Cover Letter CA Fresher' ? 'Cover Letter' : r.title })), premiumProgram: 'ca-fresher' },
-        // Companies-only page: the hiring list is free, the Industrial Training library stays premium.
-        'domain-wise-companies': {
-            resources: industrialResources.filter(r => r.category === 'application-tricks').map(r => ({
-                ...r, title: 'Hiring Companies List',
-                description: 'Companies hiring CA Industrial Trainees, with location and stipend where shared.'
-            })),
-            premiumProgram: 'industrial-training',
-            freeIntro: 'Open the list, shortlist companies in your domain and start applying.'
-        }
+        'semi-qualified': { resources: fresherResources.map(r => ({ ...r, title: r.title === 'Cover Letter CA Fresher' ? 'Cover Letter' : r.title })), premiumProgram: 'ca-fresher' }
     };
     const categories = ['cv-prep', 'interview-guidance', 'application-tricks'];
     const titleCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
@@ -219,21 +210,11 @@
             await collector.checkAndAccess(resource.title, download ? resource.downloadUrl : resource.viewUrl, () => openFree(resource, download));
         } catch (_) { showError('We could not open this resource. Please try again.'); }
     }
-    function showEnrollment(resource, trigger, loggedIn) {
+    function showEnrollment(resource, trigger) {
         const program = programs[resource.program];
         const modal = document.getElementById('resource-enroll-dialog');
-        const set = (id, text) => { const node = document.getElementById(id); if (node) node.textContent = text; };
-        // Pages with the amber members-only card fill its parts; older markup keeps its own title.
-        if (document.getElementById('resource-enroll-collection')) {
-            set('resource-enroll-collection', inferResourceGroup(resource) + ' · ' + program.title);
-            set('resource-enroll-program', /\bCA\b/.test(program.title) ? program.title : program.title.replace(/^MSC /, 'MSC CA '));
-            set('resource-enroll-count', premiumRows.length > 1 ? 'all ' + premiumRows.length + ' premium resources' : 'all premium resources');
-            const signIn = document.getElementById('resource-enroll-signin');
-            if (signIn) signIn.hidden = Boolean(loggedIn);
-        } else {
-            set('resource-enroll-title', 'Enroll in ' + program.title + ' to Access the Premium Resources');
-        }
-        set('resource-enroll-resource', resource.title);
+        document.getElementById('resource-enroll-title').textContent = 'Enroll in ' + program.title + ' to Access the Premium Resources';
+        document.getElementById('resource-enroll-resource').textContent = resource.title;
         document.getElementById('resource-enroll-link').href = program.url;
         returnFocus = trigger;
         modal.showModal();
@@ -247,7 +228,7 @@
             const isEnrolled = hasProgramEnrollment(access?.courses, resource.program, global.MSCProgramAccess.canonicalCourse);
             if (isEnrolled) {
                 global.location.href = '/learning-management-system/lms-resources.html';
-            } else showEnrollment(resource, trigger, access.loggedIn);
+            } else showEnrollment(resource, trigger);
         } catch (_) { showError('We could not check your program access. Please try again.'); }
         finally { trigger.disabled = false; }
     }
@@ -384,7 +365,7 @@
         container.replaceChildren();
         const free = element('section', 'resource-section resource-free-section');
         free.setAttribute('aria-labelledby', 'resource-free');
-        free.append(sectionHeader('free', 'Free Resources', config.resources.length, config.freeIntro || 'Make them yours. Preview a resource or download it to get started.'));
+        free.append(sectionHeader('free', 'Free Resources', config.resources.length, 'Make them yours. Preview a resource or download it to get started.'));
         const freeGrid = element('div', 'resources-list');
         organizeResources(config.resources, []).free.forEach(resource => freeGrid.append(renderCard(resource)));
         free.append(freeGrid);

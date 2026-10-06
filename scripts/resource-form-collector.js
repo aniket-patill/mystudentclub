@@ -6,13 +6,16 @@
 const supabaseUrl = 'https://auth.mystudentclub.com';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6c2dnZHRkaWFjeGRzampuY2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1OTEzNjUsImV4cCI6MjA1NDE2NzM2NX0.FVKBJG-TmXiiYzBDjGIRBM2zg-DYxzNP--WM6q2UMt0';
 // Configure Supabase client to avoid storage warnings (no auth session needed for anonymous inserts)
-const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
-    auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false
-    }
-});
+const supabaseFactory = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+const supabaseClient = window.supabaseClient || (supabaseFactory?.createClient
+    ? supabaseFactory.createClient(supabaseUrl, supabaseKey, {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+        }
+    })
+    : null);
 
 class ResourceFormCollector {
     constructor(programType) {
@@ -52,13 +55,37 @@ class ResourceFormCollector {
      * @param {string} url - Resource URL or Identifier
      * @param {Function} successCallback - Function to run on successful access/submission
      */
-    checkAndAccess(title, url, successCallback) {
+    async checkAndAccess(title, url, successCallback) {
+        if (window.MSCCareerProfile?.ensureForResource) {
+            try {
+                if (await window.MSCCareerProfile.ensureForResource(this.programType, title, url)) {
+                    await successCallback();
+                    return true;
+                }
+            } catch (error) {
+                this.showError(error.message || 'Unable to access this resource. Please try again.');
+            }
+            return false;
+        }
         if (this.isGlobalSubmitted || this.formSubmitted.has(url)) {
-            successCallback();
+            await successCallback();
+            return true;
         } else {
             this.pendingCallback = successCallback;
             this.showForm(title, url, null);
         }
+        return false;
+    }
+
+    showError(message) {
+        let notice = document.getElementById('resource-access-error');
+        if (!notice) {
+            notice = document.createElement('p');
+            notice.id = 'resource-access-error';
+            notice.setAttribute('role', 'alert');
+            document.body.appendChild(notice);
+        }
+        notice.textContent = message;
     }
 
     /**
