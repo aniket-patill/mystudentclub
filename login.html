@@ -1238,7 +1238,6 @@
 
       const requestedRedirect = new URLSearchParams(window.location.search).get('redirect') || sessionStorage.getItem('msc_career_auth_redirect');
       const redirectUrl = requestedRedirect ? MSCCareerProfile.safeRedirect(requestedRedirect) : '';
-      const signupCareerFields = MSCCareerProfile.mountFields(document.createElement('div'));
       async function completeAuthentication(user) {
         try { return await MSCCareerProfile.finishAuth(user, redirectUrl); }
         catch (error) {
@@ -1449,12 +1448,7 @@
                 last_name: lastName,
                 full_name: `${firstName} ${lastName}`.trim(),
                 msc_auth_redirect: MSCCareerProfile.safeRedirect(redirectUrl || '/'),
-                msc_career_intake: {
-                  ...signupCareerFields.read(),
-                  name: `${firstName} ${lastName}`.trim(),
-                  email,
-                  phone: document.getElementById('signup-phone')?.value.trim() || ''
-                }
+                phone: document.getElementById('signup-phone')?.value.trim() || ''
               }
             }
           });

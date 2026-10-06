@@ -60,6 +60,19 @@ test('a guest who completed intake previews the public PDF without entering the 
     dom.window.close();
 });
 
+test('optional career enrichment cannot block an already-authorized free resource', async () => {
+    for (const ensureForResource of [async () => false, async () => { throw new Error('career backend unavailable'); }]) {
+        const { dom, previews } = harness({});
+        await tick();
+        dom.window.resourceFormCollector.isGlobalSubmitted = true;
+        dom.window.MSCCareerProfile.ensureForResource = ensureForResource;
+        dom.window.document.querySelector('button[aria-label="Preview: CV Template 3"]').click();
+        await tick(); await tick();
+        assert.equal(previews.length, 1);
+        dom.window.close();
+    }
+});
+
 test('Industrial CV Template 3 downloads with its displayed number rather than the legacy source filename', async () => {
     const { dom, downloads } = harness({ ok: true, headers: { get: () => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }, blob: async () => ({ size: 100 }) });
     await tick();

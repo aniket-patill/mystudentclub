@@ -145,6 +145,15 @@ test('Articleship duplicates only the three editable Fresher resources; Semi Qua
     assert.deepEqual(library.pages['semi-qualified'].resources.map(r => r.downloadUrl),library.pages['ca-fresher'].resources.map(r => r.downloadUrl));
 });
 
+test('the existing domain-wise hiring companies page keeps its free list configuration', () => {
+    const page = library.pages['domain-wise-companies'];
+    assert.ok(page);
+    assert.equal(page.premiumProgram, 'industrial-training');
+    assert.equal(page.resources.length, 1);
+    assert.equal(page.resources[0].title, 'Hiring Companies List');
+    assert.match(page.freeIntro, /shortlist companies/i);
+});
+
 test('download filenames decode URL encoding without introducing path separators', () => {
     assert.equal(library.cleanFileName('Cover%20Letter%20CA%20Fresher.docx'), 'Cover Letter CA Fresher.docx');
     assert.equal(library.cleanFileName('Cover%2520Letter.docx'), 'Cover Letter.docx');

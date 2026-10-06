@@ -61,9 +61,21 @@ class ResourceFormCollector {
      * @param {Function} successCallback - Function to run on successful access/submission
      */
     async checkAndAccess(title, url, successCallback) {
+        if (this.isGlobalSubmitted || this.formSubmitted.has(url)) {
+            await successCallback();
+            const ensure = window.MSCCareerProfile?.ensureForResource;
+            if (typeof ensure === 'function') {
+                Promise.resolve().then(() => ensure(this.programType, title, url)).catch(error => {
+                    console.warn('Optional career details could not be collected:', error.message);
+                });
+            }
+            return true;
+        }
+
         if (window.MSCCareerProfile?.ensureForResource) {
             try {
-                if (await window.MSCCareerProfile.ensureForResource(this.programType, title, url)) {
+                const ok = await window.MSCCareerProfile.ensureForResource(this.programType, title, url);
+                if (ok) {
                     await successCallback();
                     return true;
                 }
@@ -72,13 +84,9 @@ class ResourceFormCollector {
             }
             return false;
         }
-        if (this.isGlobalSubmitted || this.formSubmitted.has(url)) {
-            await successCallback();
-            return true;
-        } else {
-            this.pendingCallback = successCallback;
-            this.showForm(title, url, null);
-        }
+
+        this.pendingCallback = successCallback;
+        this.showForm(title, url, null);
         return false;
     }
 

@@ -20,14 +20,22 @@ let currentLookingFor = null;
 // Browser drafts are read only when they are explicitly owned by this account.
 function readOwnProfileCache() {
     try {
-        if (!currentUser || localStorage.getItem('msc_profile_cache_owner') !== currentUser.id) return null;
+        if (window.MSCProfileState?.readCachedProfile && currentUser?.id) {
+            return window.MSCProfileState.readCachedProfile(currentUser.id);
+        }
+        const owner = localStorage.getItem('userProfileDataUserId') || localStorage.getItem('msc_profile_cache_owner');
+        if (!currentUser || (owner && owner !== currentUser.id) || !owner) return null;
         return JSON.parse(localStorage.getItem('userProfileData') || 'null');
     } catch (_) { return null; }
 }
 
 function cacheOwnProfile(profile) {
     if (!currentUser) return;
+    if (window.MSCProfileState?.cacheProfile && currentUser?.id) {
+        window.MSCProfileState.cacheProfile(profile, currentUser.id);
+    }
     localStorage.setItem('msc_profile_cache_owner', currentUser.id);
+    localStorage.setItem('userProfileDataUserId', currentUser.id);
     localStorage.setItem('userProfileData', JSON.stringify(profile));
 }
 

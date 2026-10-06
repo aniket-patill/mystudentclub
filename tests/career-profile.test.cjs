@@ -8,14 +8,14 @@ const source = fs.readFileSync(path.join(__dirname,'../scripts/career-profile.js
 const tick = () => new Promise(resolve=>setImmediate(resolve));
 function harness(user=null) {
   const dom=new JSDOM('<!doctype html><head></head><body><button id="origin">Open</button></body>',{url:'https://mystudentclub.com/ca-fresher-training-resources',runScripts:'outside-only'});
-  const state={user,callbacks:[],records:new Map(),writes:[],fail:false,metadata:[],enrolled:false};
+  const state={user,callbacks:[],records:new Map(),writes:[],fail:false,readError:false,metadata:[],enrolled:false};
   const db={
     auth:{getSession:async()=>({data:{session:state.user?{user:state.user}:null}}),onAuthStateChange:fn=>state.callbacks.push(fn),updateUser:async data=>{state.metadata.push(data);return{};}},
     from(table) {
       const filters={};
       const query={select(){return query;},eq(key,value){filters[key]=value;return query;},order(){return query;},
         maybeSingle:async()=>({data:state.records.get(`${filters.user_id}:${filters.stage}`)||null}),
-        limit:async()=>({data:[...state.records.entries()].filter(([key])=>key.startsWith(`${filters.user_id}:`)).map(([,row])=>row)}),
+        limit:async()=>state.readError?{data:null,error:{message:'career_intakes is unavailable'}}:{data:[...state.records.entries()].filter(([key])=>key.startsWith(`${filters.user_id}:`)).map(([,row])=>row)},
         then(resolve){return Promise.resolve({data:table==='enrollment' && state.enrolled?[{course:'industrial-training-mastery'}]:[]}).then(resolve);}};
       return query;
     },
@@ -139,13 +139,34 @@ test('shared navigation resumes pending OAuth fallback and does not duplicate th
   dom.window.close();
 });
 
-test('navigation advertises all resource and tool routes and keeps member controls visible',async()=>{
+test('navigation advertises all resource, event, guide, and tool routes and keeps member controls visible',async()=>{
   const user={id:'nav-member',email:'member@example.test',user_metadata:{msc_onboarding_seen:true}};
   const {dom}=harness(user);dom.window.document.body.insertAdjacentHTML('afterbegin','<header class="floating-header"><div class="header-container"></div></header><div id="expandedMenu"><div class="menu-items"></div></div>');dom.window.eval(fs.readFileSync(path.join(__dirname,'../scripts/site-navigation.js'),'utf8'));
   await tick();await tick();const nav=dom.window.document.querySelector('.msc-native-nav');assert.ok(nav);
-  for(const route of ['/articleship-resources','/semi-qualified-ca-resources','/cv-builder/','/cv-reviewer/','/ai-interview'])assert.ok(nav.querySelector(`a[href="${route}"]`));
+  for(const route of ['/articleship-resources','/semi-qualified-ca-resources','/cv-builder/','/cv-reviewer/','/ai-interview','/sessions/','/blog/'])assert.ok(nav.querySelector(`a[href="${route}"]`));
   assert.equal(nav.querySelector('.msc-native-login').hidden,true);assert.ok([...nav.querySelectorAll('.msc-native-member')].every(el=>!el.hidden));
   assert.equal(dom.window.document.querySelectorAll('header').length,1);
+  dom.window.close();
+});
+
+test('authentication completion does not depend on the optional career schema',async()=>{
+  const user={id:'existing-member',email:'member@example.test',user_metadata:{msc_onboarding_seen:true}};
+  const {dom,state,api}=harness(user);state.readError=true;
+  assert.equal(await api.finishAuth(user,'/jobs'),true);
+  assert.equal(dom.window.document.querySelector('.msc-career-form'),null);
+  assert.equal(state.writes.length,0);
+  dom.window.close();
+});
+
+test('shared navigation preserves an existing native desktop navigation',async()=>{
+  const {dom}=harness();
+  dom.window.document.body.insertAdjacentHTML('afterbegin','<header class="site-header"><div class="header-container"><nav class="dv2-header-nav"><a href="/page-specific" data-native-link>Page specific</a><div class="dv2-nav-dropdown"><a href="/sessions/">Events</a><a href="/blog/">Career Guides</a></div></nav></div></header>');
+  const existing=dom.window.document.querySelector('.dv2-header-nav');
+  dom.window.eval(fs.readFileSync(path.join(__dirname,'../scripts/site-navigation.js'),'utf8'));
+  await tick();await tick();
+  assert.equal(dom.window.document.querySelector('.dv2-header-nav'),existing);
+  assert.ok(existing.querySelector('[data-native-link]'));
+  assert.ok(existing.querySelector('a[href="/sessions/"]'));assert.ok(existing.querySelector('a[href="/blog/"]'));
   dom.window.close();
 });
 
@@ -179,11 +200,12 @@ test('resource collection honors explicit Industrial stage on legacy URL and all
   const legacy=fs.readFileSync(path.join(__dirname,'../resource.html'),'utf8');assert.match(legacy,/<body data-resource-stage="industrial-training">/);dom.window.close();
 });
 
-test('the allowed job generator and scheduled installer preserve shared navigation',()=>{
+test('the allowed job generator embeds shared navigation without a repository-wide installer',()=>{
   for(const file of ['../scripts/generate-jobs.js']){
     const content=fs.readFileSync(path.join(__dirname,file),'utf8');assert.match(content,/site-navigation\.css/);assert.match(content,/site-navigation\.js/);
   }
-  assert.match(fs.readFileSync(path.join(__dirname,'../.github/workflows/generate-jobs.yml'),'utf8'),/node scripts\/install-site-navigation\.cjs/);
+  assert.doesNotMatch(fs.readFileSync(path.join(__dirname,'../.github/workflows/generate-jobs.yml'),'utf8'),/install-site-navigation/);
+  assert.equal(fs.existsSync(path.join(__dirname,'../scripts/install-site-navigation.cjs')),false);
 });
 
 test('a concurrent resource from a different stage cannot borrow the open form outcome',async()=>{
@@ -218,8 +240,9 @@ test('onboarding traps focus, restores scrolling, and cannot continue as a diffe
 test('profile saves retain intake fields without restoring removed files or another account draft',()=>{
   const {dom}=harness();const profileSource=fs.readFileSync(path.join(__dirname,'../scripts/profile.js'),'utf8');
   const start=profileSource.indexOf('function readOwnProfileCache()');const end=profileSource.indexOf('// =================== TOAST',start);
+  dom.window.eval(fs.readFileSync(path.join(__dirname,'../scripts/profile-state.js'),'utf8'));
   dom.window.currentUser={id:'profile-a'};dom.window.eval(profileSource.slice(start,end));
-  dom.window.cacheOwnProfile({name:'Old Name',career_intake:{stage:'industrial-training'},marketing_email_consent:true,industrial_training_eligibility_date:'2027-05-01',cv_filename:'Removed.pdf'});
+  dom.window.MSCProfileState.cacheProfile({name:'Old Name',career_intake:{stage:'industrial-training'},marketing_email_consent:true,industrial_training_eligibility_date:'2027-05-01',cv_filename:'Removed.pdf'},'profile-a');
   const updated=dom.window.preserveCareerProfileFields({name:'New Name'});assert.equal(updated.name,'New Name');assert.equal(updated.career_intake.stage,'industrial-training');assert.equal(updated.industrial_training_eligibility_date,'2027-05-01');assert.equal(updated.marketing_email_consent,true);assert.equal(updated.cv_filename,undefined);
   dom.window.currentUser={id:'profile-b'};assert.equal(dom.window.readOwnProfileCache(),null);assert.equal(dom.window.preserveCareerProfileFields({name:'B'}).career_intake,undefined);
   assert.match(profileSource,/const profileData = preserveCareerProfileFields\(Object\.fromEntries\(formData\.entries\(\)\)\)/);assert.match(profileSource,/return preserveCareerProfileFields\(obj\)/);dom.window.close();
@@ -229,16 +252,16 @@ async function authPageHarness(file) {
   const html=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
   const dom=new JSDOM(html,{url:'https://mystudentclub.com/'+file+'?redirect=%2Fcv-builder%2F',runScripts:'outside-only',pretendToBeVisual:true});
   const writes=[],flows=[];dom.window.requestAnimationFrame=()=>{};
-  dom.window.MSCCareerProfile={safeRedirect:value=>value.startsWith('/')?value:'/',mountFields:()=>({read:()=>({stage:'ca-fresher',status:'Qualified',attempt_month:'May',attempt_year:'2026',sharing_consent:true,consent_version:'2026-09-27'})}),finishAuth:async(user,redirect)=>{flows.push({user,redirect});},markAuthPending(){}};
   dom.window.supabaseClient={auth:{getSession:async()=>({data:{session:null}}),signUp:async data=>{writes.push(data);return{data:{user:{id:'pending'},session:null}}}}};
+  dom.window.eval(source);
   for(const script of dom.window.document.querySelectorAll('script:not([src])'))dom.window.eval(script.textContent);
   await tick();return{dom,writes,flows};
 }
-test('both email signup pages retain tool return destination in confirmation metadata',async()=>{
+test('both email signup pages remain nonblocking with the real career helper',async()=>{
   for(const file of ['login.html','sign-up.html']){
     const {dom,writes}=await authPageHarness(file);const doc=dom.window.document;
     for(const [id,value] of Object.entries({'signup-firstname':'Test Name','signup-name':'Test Name','signup-email':'test@example.test','email':'test@example.test','signup-password':'password123','password':'password123','confirm-password':'password123','signup-phone':'9999999999'})){if(doc.getElementById(id))doc.getElementById(id).value=value;}
-    doc.getElementById('signup-form').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await tick();assert.equal(writes.length,1,file);assert.equal(writes[0].options.data.msc_auth_redirect,'/cv-builder/');assert.equal(writes[0].options.data.msc_career_intake.phone,'9999999999');dom.window.close();
+    doc.getElementById('signup-form').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await tick();assert.equal(writes.length,1,file);assert.equal(writes[0].options.data.msc_auth_redirect,'/cv-builder/');assert.equal(writes[0].options.data.phone,'9999999999');assert.equal(writes[0].options.data.msc_career_intake,undefined);dom.window.close();
   }
 });
 

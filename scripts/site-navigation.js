@@ -4,7 +4,7 @@
   if (window.self !== window.top || window.MSCNativeNavigation) return;
   window.MSCNativeNavigation = true;
   const groups = [
-    ['Free Resources', [['Industrial Training', '/ca-industrial-training-resources'], ['Articleship', '/articleship-resources'], ['CA Fresher', '/ca-fresher-training-resources'], ['Semi-Qualified CA', '/semi-qualified-ca-resources']]],
+    ['Free Resources', [['Industrial Training', '/ca-industrial-training-resources'], ['Articleship', '/articleship-resources'], ['CA Fresher', '/ca-fresher-training-resources'], ['Semi-Qualified CA', '/semi-qualified-ca-resources'], ['Events', '/sessions/'], ['Career Guides', '/blog/']]],
     ['Tools', [['CV Builder', '/cv-builder/'], ['CV Reviewer', '/cv-reviewer/'], ['AI Interview Bot', '/ai-interview']]],
     ['Programs', [['MSC Industrial Training Program', '/ca-industrial-training-program/'], ['MSC Articleship Program', '/articleship-program/'], ['MSC CA Fresher Program', '/msc-ca-fresher-program/']]]
   ];
@@ -81,7 +81,7 @@
       const existing=header.querySelector('.dv2-header-nav');
       const nativeAccount=Boolean(header.querySelector('.auth-buttons-container,.auth-icon-btn,.auth-buttons'));
       const desktop=navigation(true,nativeAccount);
-      if(existing) {existing.replaceChildren(...desktop.childNodes);existing.classList.add('msc-native-nav','msc-native-desktop');menus[menus.indexOf(desktop)]=existing;}
+      if(existing) {existing.classList.add('msc-native-nav','msc-native-desktop');menus[menus.indexOf(desktop)]=existing;}
       else {
         const container=header.querySelector('.header-container')||header;
         const actions=container.querySelector('.nav-actions,.header-actions,.auth-buttons');
