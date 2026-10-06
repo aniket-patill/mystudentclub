@@ -16,6 +16,33 @@ let currentUser = null;
 let lastUpdatedISO = null;
 let currentLookingFor = null;
 
+// Intake fields without editor controls must survive ordinary profile saves.
+// Browser drafts are read only when they are explicitly owned by this account.
+function readOwnProfileCache() {
+    try {
+        if (!currentUser || localStorage.getItem('msc_profile_cache_owner') !== currentUser.id) return null;
+        return JSON.parse(localStorage.getItem('userProfileData') || 'null');
+    } catch (_) { return null; }
+}
+
+function cacheOwnProfile(profile) {
+    if (!currentUser) return;
+    localStorage.setItem('msc_profile_cache_owner', currentUser.id);
+    localStorage.setItem('userProfileData', JSON.stringify(profile));
+}
+
+function preserveCareerProfileFields(values) {
+    const saved = readOwnProfileCache() || {};
+    const result = {};
+    for (const key of ['career_intake', 'recruiter_sharing_consent', 'marketing_email_consent', 'career_intake_consent_at',
+        'industrial_training_eligibility_date', 'articleship_1yr_end_date', 'ca_final_status', 'ca_inter_status',
+        'ca_final_attempt', 'ca_inter_attempt', 'ca_final_groups_cleared', 'portal_type', 'total_experience',
+        'years_of_experience']) {
+        if (Object.prototype.hasOwnProperty.call(saved, key)) result[key] = saved[key];
+    }
+    return Object.assign(result, values);
+}
+
 // =================== TOAST NOTIFICATIONS ===================
 function showToast(message, type = 'info', duration = 6000) {
     const container = document.getElementById('toast-container');
@@ -2356,7 +2383,7 @@ const WZ = (() => {
             if (el.type === 'checkbox') return; // chip checkboxes are unnamed; named checkboxes saved via hidden inputs
             if (el.value) obj[el.name] = el.value;
         });
-        return obj;
+        return preserveCareerProfileFields(obj);
     }
 
     // Maps AI response keys to form field names when they differ
@@ -2581,7 +2608,14 @@ function populateForm(profileData) {
     for (const key in profileData) {
         if (key === 'resume' || key === 'cover_letter' || key === 'project_attachment') continue;
         const field = profileForm.elements[key];
-        if (field) field.value = profileData[key];
+        if (field) {
+            const value = String(profileData[key] ?? '');
+            if (field.tagName === 'SELECT' && value && !Array.from(field.options).some(option => option.value === value)) {
+                field.add(new Option(value, value));
+            }
+            if (field.type === 'checkbox') field.checked = ['true', 'on', 'yes', '1'].includes(value.toLowerCase());
+            else field.value = value;
+        }
     }
 
     const emailField = document.getElementById('email');
@@ -3287,7 +3321,7 @@ async function persistProfileRecord(profileData, ocrText) {
 async function persistCurrentProfileSnapshot() {
     if (!currentUser || !profileForm) return;
 
-    const profileData = Object.fromEntries(new FormData(profileForm).entries());
+    const profileData = preserveCareerProfileFields(Object.fromEntries(new FormData(profileForm).entries()));
     delete profileData.resume;
     delete profileData.cover_letter;
     const cvFileName = localStorage.getItem('userCVFileName');
@@ -3341,7 +3375,7 @@ async function handleSave(e) {
     saveBtn.disabled = true;
 
     const formData = new FormData(profileForm);
-    const profileData = Object.fromEntries(formData.entries());
+    const profileData = preserveCareerProfileFields(Object.fromEntries(formData.entries()));
     delete profileData.resume;
     delete profileData.cover_letter;
     // Persist the CV filename so the resume display survives localStorage wipes

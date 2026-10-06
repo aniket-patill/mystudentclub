@@ -35,10 +35,15 @@ class ResourceFormCollector {
      * Detect program type from page URL or title
      */
     static detectProgramType() {
+        const declaredStage = document.body?.dataset?.resourceStage;
+        if (['industrial-training', 'ca-fresher', 'articleship', 'semi-qualified'].includes(declaredStage)) {
+            return declaredStage;
+        }
         const path = window.location.pathname.toLowerCase();
-        const title = document.title.toLowerCase();
 
-        if (path.includes('ca-fresher') || path.includes('fresher-training-resources') ||
+        if (path.includes('semi-qualified')) {
+            return 'semi-qualified';
+        } else if (path.includes('ca-fresher') || path.includes('fresher-training-resources') ||
             (path.includes('fresher') && !path.includes('semi'))) {
             return 'ca-fresher';
         } else if (path.includes('industrial-training') || path.includes('industrial-training-resources')) {
@@ -678,7 +683,9 @@ class ResourceFormCollector {
             // and bypassing our own interception.
             const link = document.createElement('a');
             link.href = url;
-            link.download = url.split('/').pop();
+            let filename = new URL(url, window.location.origin).pathname.split('/').pop() || 'Resource';
+            try { filename = decodeURIComponent(filename); } catch (_) { /* keep the original name */ }
+            link.download = filename;
             link.dataset.noIntercept = 'true';
             link.style.display = 'none';
             document.body.appendChild(link);
@@ -701,6 +708,8 @@ class ResourceFormCollector {
         }
     }
 }
+
+window.ResourceFormCollector = ResourceFormCollector;
 
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
