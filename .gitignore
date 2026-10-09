@@ -10,3 +10,4 @@ jobs-builder/node_modules/
 sample-job-test.html
 context/
 docs/
+supabase/mentorship/*.local.sql
